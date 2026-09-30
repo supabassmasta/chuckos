@@ -9,7 +9,7 @@ from the source tree in `../chuck-1.5.5.8`.
 
 On the host machine:
 ```
-sudo apt install live-build qemu-system-x86 qemu-utils rsync
+sudo apt install live-build debian-archive-keyring qemu-system-x86 qemu-utils rsync
 cd chuckos
 sudo ./build.sh
 ```
