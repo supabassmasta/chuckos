@@ -115,6 +115,11 @@ DEBIAN_SECURITY_MIRROR="http://security.debian.org/debian-security/"
 # any current Debian release (the correct format since stretch is
 # "<suite>-security"). We disable the built-in line and supply the correct
 # one ourselves via config/archives/chuckos-security.list.{chroot,binary}.
+#
+# --keyring-packages debian-archive-keyring: same host-default-leaking
+# pattern as the mirrors -- without this, live-build tries to install
+# "ubuntu-keyring" into the chroot, which doesn't exist in Debian's
+# archive and fails the build.
 lb config \
   --mode debian \
   --distribution "${DISTRIBUTION}" \
@@ -137,6 +142,7 @@ lb config \
   --parent-mirror-binary-volatile "${DEBIAN_MIRROR}" \
   --mirror-debian-installer "${DEBIAN_MIRROR}" \
   --parent-mirror-debian-installer "${DEBIAN_MIRROR}" \
+  --keyring-packages "debian-archive-keyring" \
   --linux-packages "${KERNEL_FLAVOR}" \
   --binary-images iso-hybrid \
   --debian-installer live \
