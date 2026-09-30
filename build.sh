@@ -125,6 +125,12 @@ lb config \
   --parent-mirror-chroot-security "${DEBIAN_SECURITY_MIRROR}" \
   --parent-mirror-binary "${DEBIAN_MIRROR}" \
   --parent-mirror-binary-security "${DEBIAN_SECURITY_MIRROR}" \
+  --mirror-chroot-volatile "${DEBIAN_MIRROR}" \
+  --parent-mirror-chroot-volatile "${DEBIAN_MIRROR}" \
+  --mirror-binary-volatile "${DEBIAN_MIRROR}" \
+  --parent-mirror-binary-volatile "${DEBIAN_MIRROR}" \
+  --mirror-debian-installer "${DEBIAN_MIRROR}" \
+  --parent-mirror-debian-installer "${DEBIAN_MIRROR}" \
   --linux-packages "${KERNEL_FLAVOR}" \
   --binary-images iso-hybrid \
   --debian-installer live \
