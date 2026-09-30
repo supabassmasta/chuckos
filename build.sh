@@ -101,22 +101,45 @@ echo "[build.sh] configuring live-build (${DISTRIBUTION}/${ARCHITECTURE}, kernel
 # Ubuntu archive, which has no "bookworm" suite and fails with a 404 on
 # Release. Forcing these explicitly makes the target Debian regardless of
 # host.
+# the actual debootstrap invocation uses the *parent* mirror settings
+# (LB_PARENT_MIRROR_BOOTSTRAP etc), not the plain --mirror-* ones -- those
+# only affect the chroot's apt sources.list *after* bootstrapping. On this
+# host, /etc/live/build.conf (shipped by Ubuntu's live-build package)
+# apparently defaults the parent mirror to archive.ubuntu.com, and plain
+# --mirror-bootstrap does not override that. Set both explicitly so nothing
+# is left to a host-specific system default.
+DEBIAN_MIRROR="http://deb.debian.org/debian/"
+DEBIAN_SECURITY_MIRROR="http://security.debian.org/debian-security/"
 lb config \
   --mode debian \
   --distribution "${DISTRIBUTION}" \
   --architectures "${ARCHITECTURE}" \
   --archive-areas "main contrib non-free non-free-firmware" \
-  --mirror-bootstrap "http://deb.debian.org/debian/" \
-  --mirror-chroot "http://deb.debian.org/debian/" \
-  --mirror-chroot-security "http://security.debian.org/debian-security/" \
-  --mirror-binary "http://deb.debian.org/debian/" \
-  --mirror-binary-security "http://security.debian.org/debian-security/" \
+  --mirror-bootstrap "${DEBIAN_MIRROR}" \
+  --mirror-chroot "${DEBIAN_MIRROR}" \
+  --mirror-chroot-security "${DEBIAN_SECURITY_MIRROR}" \
+  --mirror-binary "${DEBIAN_MIRROR}" \
+  --mirror-binary-security "${DEBIAN_SECURITY_MIRROR}" \
+  --parent-mirror-bootstrap "${DEBIAN_MIRROR}" \
+  --parent-mirror-chroot "${DEBIAN_MIRROR}" \
+  --parent-mirror-chroot-security "${DEBIAN_SECURITY_MIRROR}" \
+  --parent-mirror-binary "${DEBIAN_MIRROR}" \
+  --parent-mirror-binary-security "${DEBIAN_SECURITY_MIRROR}" \
   --linux-packages "${KERNEL_FLAVOR}" \
   --binary-images iso-hybrid \
   --debian-installer live \
   --debian-installer-gui false \
   --iso-application "ChuckOS" \
   --iso-volume "ChuckOS ${DISTRIBUTION}"
+
+echo "[build.sh] verifying resolved bootstrap mirror..."
+if [[ -f config/bootstrap ]] && grep -qi "archive.ubuntu.com" config/bootstrap; then
+  echo "error: config/bootstrap still references archive.ubuntu.com after lb config." >&2
+  echo "  this usually means /etc/live/build.conf on this host is overriding our" >&2
+  echo "  settings. Contents of config/bootstrap for reference:" >&2
+  grep -i mirror config/bootstrap >&2 || true
+  exit 1
+fi
 
 echo "[build.sh] building image (this can take a while)..."
 lb build
