@@ -32,7 +32,12 @@ cd "$SCRIPT_DIR"
 
 DISTRIBUTION="bookworm"
 ARCHITECTURE="amd64"
-KERNEL_FLAVOR="linux-rt"   # -> live-build installs linux-image-rt-${ARCHITECTURE}
+# live-build constructs the actual kernel package name as
+# "<linux-packages-prefix>-<linux-flavours>" -- the prefix defaults
+# correctly to "linux-image" under --mode debian and should not be
+# touched; this is only the flavour suffix, giving "linux-image-rt-amd64"
+# (Debian's real PREEMPT_RT kernel package name).
+KERNEL_FLAVOUR="rt-${ARCHITECTURE}"
 
 # where the ChucK source lives, relative to this script
 CHUCK_SRC="$SCRIPT_DIR/../chuck-1.5.5.8"
@@ -94,7 +99,7 @@ rsync -a --delete \
   --exclude '.git' \
   "$CHUCK_SRC/" "$CHUCK_SRC_DEST/"
 
-echo "[build.sh] configuring live-build (${DISTRIBUTION}/${ARCHITECTURE}, kernel=${KERNEL_FLAVOR})..."
+echo "[build.sh] configuring live-build (${DISTRIBUTION}/${ARCHITECTURE}, kernel flavour=${KERNEL_FLAVOUR})..."
 # --mode debian plus explicit Debian mirrors: live-build otherwise infers
 # defaults (mirror, keyring) from the *host* OS. On a non-Debian host (e.g.
 # this being built from Ubuntu) that silently points debootstrap at the
@@ -143,7 +148,7 @@ lb config \
   --mirror-debian-installer "${DEBIAN_MIRROR}" \
   --parent-mirror-debian-installer "${DEBIAN_MIRROR}" \
   --keyring-packages "debian-archive-keyring" \
-  --linux-packages "${KERNEL_FLAVOR}" \
+  --linux-flavours "${KERNEL_FLAVOUR}" \
   --binary-images iso-hybrid \
   --debian-installer live \
   --debian-installer-gui false \
