@@ -1,0 +1,9 @@
+*.swp
+.build/
+chroot/
+config/binary
+config/bootstrap
+config/chroot
+config/common
+config/includes.chroot/usr/local/src/
+config/source
