@@ -67,13 +67,25 @@ case "${1:-}" in
   clean|cleanonly)
     echo "[build.sh] cleaning previous build artifacts..."
     lb clean --purge || true
-    # lb clean --purge does not reliably drop the bootstrap cache -- if a
-    # previous run bootstrapped against the wrong mirror (e.g. this
-    # project's own history of accidentally using the host's Ubuntu mirror
-    # instead of Debian's), `lb build` will happily "restore" that stale,
-    # wrong-mirror cache instead of re-bootstrapping. Remove it explicitly
-    # so `clean` is actually a clean slate every time.
-    rm -rf cache .build chroot binary
+    # lb clean --purge does not reliably drop the bootstrap cache, nor does
+    # it touch live-build's own internal config/* metadata files -- and
+    # `lb config` itself MERGES onto whatever is already in config/ rather
+    # than fully regenerating it, so a flag removed from one build.sh run
+    # to the next can leave a stale value behind (bitten by this once
+    # already: an old --linux-packages value silently survived a run where
+    # that flag was no longer passed at all). So: wipe build state/cache,
+    # and wipe every live-build-internal file directly under config/
+    # EXCEPT the subdirectories we actually author by hand -- keep this
+    # list of exceptions in sync with the "!config/..." lines in
+    # .gitignore, since it's the same "what do we author vs. what does
+    # live-build generate" distinction.
+    rm -rf cache .build chroot binary local auto
+    for entry in config/*; do
+      case "$(basename "$entry")" in
+        archives|hooks|includes.chroot|package-lists) ;; # ours -- keep
+        *) rm -rf "$entry" ;;
+      esac
+    done
     if [[ "${1}" == "cleanonly" ]]; then
       exit 0
     fi
@@ -125,12 +137,24 @@ DEBIAN_SECURITY_MIRROR="http://security.debian.org/debian-security/"
 # pattern as the mirrors -- without this, live-build tries to install
 # "ubuntu-keyring" into the chroot, which doesn't exist in Debian's
 # archive and fails the build.
+#
+# --firmware-chroot false / --firmware-binary false: without these,
+# live-build tries to auto-detect firmware packages matching installed
+# hardware drivers by downloading and parsing dists/<suite>/Contents-<arch>.gz
+# (see /usr/lib/live/build/lb_chroot_linux-image and
+# lb_binary_debian-installer) -- but that top-level, non-component Contents
+# file 404s against current Debian mirrors, failing the build. We already
+# list the firmware packages we actually want explicitly in
+# config/package-lists/chuckos.list.chroot, so we don't need this
+# auto-detection at all.
 lb config \
   --mode debian \
   --distribution "${DISTRIBUTION}" \
   --architectures "${ARCHITECTURE}" \
   --archive-areas "main contrib non-free non-free-firmware" \
   --security false \
+  --firmware-chroot false \
+  --firmware-binary false \
   --mirror-bootstrap "${DEBIAN_MIRROR}" \
   --mirror-chroot "${DEBIAN_MIRROR}" \
   --mirror-chroot-security "${DEBIAN_SECURITY_MIRROR}" \
