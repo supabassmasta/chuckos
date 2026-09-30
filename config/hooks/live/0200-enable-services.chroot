@@ -3,7 +3,8 @@
 # to any graphical target (none is installed, but be explicit).
 set -e
 
-echo "[0200-enable-services] enabling ssh, chuckos-firstboot..."
+echo "[0200-enable-services] enabling ssh, chuckos-firstboot, chuckos-cpu-governor..."
 systemctl enable ssh
 systemctl enable chuckos-firstboot.service
+systemctl enable chuckos-cpu-governor.service
 systemctl set-default multi-user.target

@@ -1,0 +1,11 @@
+[Unit]
+Description=ChuckOS: set CPU frequency governor to performance
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/chuckos-set-governor.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

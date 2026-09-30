@@ -32,9 +32,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # --- fill these in once you know the device IDs (see --list-usb) ---
-LPD8_ID=""        # e.g. "09e8:0026"
-LAUNCHPAD_ID=""   # e.g. "1235:0069"
-SCARLETT_ID=""    # e.g. "1235:8211"
+LPD8_ID="09e8:003f"        # e.g. "09e8:0026"
+LAUNCHPAD_ID="1235:0069"   # e.g. "1235:0069"
+SCARLETT_ID="1235:8200"    # e.g. "1235:8211"
 # ---------------------------------------------------------------------
 
 WITH_USB=0

@@ -125,19 +125,29 @@ prompted for your password).
 
 ## Tuning latency
 
-The kernel is already PREEMPT_RT (`linux-image-rt-amd64`). Further tuning is reboot-based, via
-the kernel command line:
-1. Edit `/etc/default/grub`, add to `GRUB_CMDLINE_LINUX_DEFAULT`, e.g.:
-   `isolcpus=2,3 nohz_full=2,3 rcu_nocbs=2,3`
-   (reserve CPU cores 2-3 for audio; adjust core numbers to your machine -- check with `nproc`)
-2. `sudo update-grub && sudo reboot`
-3. Set the CPU governor to performance: `sudo cpupower frequency-set -g performance` (or make
-   this persistent via a systemd unit/udev rule if you want it every boot).
-4. Tune ChucK's own buffer size/count via `chuck-run --bufsize:<N> --bufnum:<N>` -- smaller
-   buffers mean lower latency but more risk of xruns; find the smallest stable value by testing.
+The kernel is already PREEMPT_RT (`linux-image-rt-amd64`), and the following are handled
+automatically -- nothing to do by hand:
 
-rtprio/memlock limits for the `audio` group are already set in
-`/etc/security/limits.d/99-chuckos-audio.conf` (rtprio 95, memlock unlimited, nice -19).
+- **CPU core isolation**: `chuckos-firstboot.service` reserves cores 2-3 for audio via the kernel
+  command line (`isolcpus=2,3 nohz_full=2,3 rcu_nocbs=2,3`, appended to `GRUB_CMDLINE_LINUX_DEFAULT`
+  in `/etc/default/grub`, followed by `update-grub`), assuming a 4-core machine. It checks `nproc`
+  first and skips itself on a machine with fewer than 4 cores (e.g. some Raspberry Pi models)
+  rather than misconfiguring it. **Takes effect after a reboot** -- reboot once after first boot
+  for it to apply. To change which cores are isolated (or the minimum-core check), edit
+  `ISOLATED_CORES`/`MIN_CORES` at the top of
+  `config/includes.chroot/usr/local/bin/chuckos-firstboot.sh` and rebuild.
+- **CPU governor**: `chuckos-cpu-governor.service` runs `cpupower frequency-set -g performance` on
+  every boot (governors don't persist across reboots on their own, unlike the cmdline change
+  above, so this re-applies it each time).
+- **rtprio/memlock limits** for the `audio` group are set in
+  `/etc/security/limits.d/99-chuckos-audio.conf` (rtprio 95, memlock unlimited, nice -19).
+
+The one knob left to tune by hand, per ChucK invocation, is buffer size/count:
+```
+chuck-run --bufsize:<N> --bufnum:<N> myfile.ck
+```
+Smaller buffers mean lower latency but more risk of xruns -- find the smallest stable value by
+testing on real hardware (see the VM latency caveat above).
 
 ## Raspberry Pi (future)
 

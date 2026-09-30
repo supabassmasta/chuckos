@@ -36,6 +36,10 @@ check "chuck-run present"          bash -c 'command -v chuck-run'
 check "net-toggle present"         bash -c 'command -v net-toggle'
 check "amidi present (MIDI tooling)" bash -c 'command -v amidi'
 check "rtprio limit configured for audio group" bash -c 'grep -q "^@audio" /etc/security/limits.d/99-chuckos-audio.conf'
+check "cpupower present"           bash -c 'command -v cpupower'
+check "cpu governor service active" systemctl is-active --quiet chuckos-cpu-governor.service
+check "CPU isolation configured in grub (>=4 cores only)" bash -c \
+  '[[ $(nproc) -lt 4 ]] || grep -q "isolcpus=" /etc/default/grub'
 
 echo "=== $PASS passed, $FAIL failed ==="
 [[ $FAIL -eq 0 ]]

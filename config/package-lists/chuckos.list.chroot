@@ -11,10 +11,14 @@ git
 nano
 usbutils
 htop
+vim
 
 ## --- audio / MIDI tooling ---
 alsa-utils
 libasound2-dev
+
+## --- real-time performance tuning ---
+linux-cpupower
 
 ## --- ChucK build dependencies (matches chuck-1.5.5.8/README.md) ---
 build-essential
