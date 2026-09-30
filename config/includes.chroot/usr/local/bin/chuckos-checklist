@@ -1,0 +1,41 @@
+#!/bin/bash
+# ChuckOS functional checklist -- run on real hardware, or inside the QEMU
+# test VM launched by vm-test.sh (on the build host). Prints PASS/FAIL per
+# check and exits non-zero if anything failed.
+set -uo pipefail
+
+PASS=0
+FAIL=0
+
+check() {
+  local desc="$1"; shift
+  if "$@" >/tmp/chuckos-check.out 2>&1; then
+    echo "PASS  $desc"
+    PASS=$((PASS+1))
+  else
+    echo "FAIL  $desc"
+    sed 's/^/      /' /tmp/chuckos-check.out
+    FAIL=$((FAIL+1))
+  fi
+}
+
+echo "=== ChuckOS checklist ==="
+
+check "PREEMPT_RT kernel active" bash -c 'uname -v | grep -qi PREEMPT_RT'
+check "chuck binary present"     bash -c 'command -v chuck'
+check "chuck runs a program (silent mode)" bash -c \
+  'echo "<<< \"success\" >>>;" > /tmp/chuckos-t.ck &&
+   chuck --silent --chugin-load:off /tmp/chuckos-t.ck 2>&1 | grep -q "\"success\""'
+check "chuck --probe reports audio devices" bash -c 'chuck --probe 2>&1 | grep -qi "dac\|adc\|device"'
+check "tmux present"              bash -c 'command -v tmux'
+check "tmux config present"       test -f /etc/tmux.conf
+check "git present"                bash -c 'command -v git'
+check "ssh server active"          systemctl is-active --quiet ssh
+check "audio-select present"       bash -c 'command -v audio-select'
+check "chuck-run present"          bash -c 'command -v chuck-run'
+check "net-toggle present"         bash -c 'command -v net-toggle'
+check "amidi present (MIDI tooling)" bash -c 'command -v amidi'
+check "rtprio limit configured for audio group" bash -c 'grep -q "^@audio" /etc/security/limits.d/99-chuckos-audio.conf'
+
+echo "=== $PASS passed, $FAIL failed ==="
+[[ $FAIL -eq 0 ]]

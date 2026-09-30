@@ -1,0 +1,21 @@
+#!/bin/sh
+# Build and install ChucK from the source tree bundled into the image by
+# build.sh (see /usr/local/src/chuck-1.5.5.8). Runs inside the chroot,
+# after packages (incl. build-essential/bison/flex/libsndfile1-dev/
+# libasound2-dev) and includes.chroot are already in place.
+set -e
+
+SRC=/usr/local/src/chuck-1.5.5.8/src
+
+if [ ! -d "$SRC" ]; then
+    echo "[0100-build-chuck] ERROR: $SRC not found -- did build.sh sync the source?" >&2
+    exit 1
+fi
+
+echo "[0100-build-chuck] building chuck (ALSA driver)..."
+cd "$SRC"
+make linux-alsa
+make install
+make clean
+
+echo "[0100-build-chuck] done: $(command -v chuck)"

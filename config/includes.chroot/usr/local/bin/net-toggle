@@ -1,0 +1,36 @@
+#!/bin/bash
+# ChuckOS: quick on/off toggle for wifi and/or wired ethernet.
+# Usage: net-toggle {wifi|eth|all} {on|off|status}
+set -euo pipefail
+
+ETH_IF="$(ip -o link show | awk -F': ' '$2 ~ /^en|^eth/ {print $2; exit}')"
+
+usage() { echo "usage: net-toggle {wifi|eth|all} {on|off|status}" >&2; exit 1; }
+[[ $# -eq 2 ]] || usage
+TARGET="$1"; ACTION="$2"
+
+wifi_action() {
+  case "$1" in
+    on)     sudo rfkill unblock wifi ;;
+    off)    sudo rfkill block wifi ;;
+    status) rfkill list wifi ;;
+    *) usage ;;
+  esac
+}
+
+eth_action() {
+  [[ -n "$ETH_IF" ]] || { echo "no ethernet interface found" >&2; return 1; }
+  case "$1" in
+    on)     sudo ip link set "$ETH_IF" up ;;
+    off)    sudo ip link set "$ETH_IF" down ;;
+    status) ip link show "$ETH_IF" ;;
+    *) usage ;;
+  esac
+}
+
+case "$TARGET" in
+  wifi) wifi_action "$ACTION" ;;
+  eth)  eth_action "$ACTION" ;;
+  all)  wifi_action "$ACTION"; eth_action "$ACTION" ;;
+  *) usage ;;
+esac

@@ -1,0 +1,36 @@
+# ChuckOS package list
+# One package per line. Comments (#) and blank lines are ignored.
+# Add a package here and re-run `sudo ./build.sh` to include it -- no
+# other file needs to change for a plain package addition.
+
+## --- core system ---
+tmux
+openssh-server
+sudo
+git
+nano
+usbutils
+htop
+
+## --- audio / MIDI tooling ---
+alsa-utils
+libasound2-dev
+
+## --- ChucK build dependencies (matches chuck-1.5.5.8/README.md) ---
+build-essential
+bison
+flex
+libsndfile1-dev
+
+## --- networking toggle tools ---
+rfkill
+iproute2
+wireless-tools
+firmware-linux-free
+firmware-realtek
+firmware-iwlwifi
+
+## --- optional, disabled by default: uncomment to add JACK support
+##     (the ChuckOS default is ChucK's built-in ALSA driver, no JACK needed) ---
+#jackd2
+#libjack-jackd2-dev

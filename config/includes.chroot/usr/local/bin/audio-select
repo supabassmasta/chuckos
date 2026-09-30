@@ -1,0 +1,43 @@
+#!/bin/bash
+# ChuckOS: choose which sound card ChucK should default to.
+# Usage: audio-select {hda|scarlett|status}
+#
+# This just remembers a device-name pattern, matched later by ChucK's own
+# `--dac:<name>` substring matching against the device names RtAudio
+# reports (see `chuck --probe`). The actual selection is applied by the
+# `chuck-run` wrapper, which reads this file. Default is HDA if you never
+# run this at all.
+set -euo pipefail
+
+STATE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/chuckos"
+STATE_FILE="$STATE_DIR/audio-device"
+mkdir -p "$STATE_DIR"
+
+pattern_for() {
+  case "$1" in
+    hda)      echo "HDA" ;;
+    scarlett) echo "Scarlett" ;;
+  esac
+}
+
+case "${1:-status}" in
+  hda|scarlett)
+    echo "$1" > "$STATE_FILE"
+    PATTERN="$(pattern_for "$1")"
+    if chuck --probe 2>&1 | grep -qi "$PATTERN"; then
+      echo "audio device set to: $1 (found in 'chuck --probe')"
+    else
+      echo "audio device set to: $1 (not currently visible in 'chuck --probe' -- is it plugged in?)"
+    fi
+    ;;
+  status)
+    SELECTED="$(cat "$STATE_FILE" 2>/dev/null || echo hda)"
+    echo "selected: $SELECTED (default: hda)"
+    echo "--- chuck --probe ---"
+    chuck --probe 2>&1 || true
+    ;;
+  *)
+    echo "usage: audio-select {hda|scarlett|status}" >&2
+    exit 1
+    ;;
+esac

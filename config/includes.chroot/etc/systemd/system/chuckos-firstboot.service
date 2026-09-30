@@ -1,0 +1,11 @@
+[Unit]
+Description=ChuckOS first-boot setup (audio group membership)
+ConditionPathExists=!/var/lib/chuckos/firstboot-done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/chuckos-firstboot.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

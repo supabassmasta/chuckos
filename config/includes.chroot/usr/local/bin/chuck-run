@@ -1,0 +1,16 @@
+#!/bin/bash
+# ChuckOS: run chuck against whichever sound card is currently selected
+# (see audio-select). Extra arguments are passed straight through to chuck,
+# e.g.:  chuck-run --bufsize:64 --bufnum:4 myfile.ck
+set -euo pipefail
+
+STATE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/chuckos/audio-device"
+SELECTED="$(cat "$STATE_FILE" 2>/dev/null || echo hda)"
+
+case "$SELECTED" in
+  scarlett) PATTERN="Scarlett" ;;
+  *)        PATTERN="HDA" ;;
+esac
+
+echo "[chuck-run] audio device: $SELECTED (matching '$PATTERN')" >&2
+exec chuck --driver:alsa "--dac:${PATTERN}" "$@"

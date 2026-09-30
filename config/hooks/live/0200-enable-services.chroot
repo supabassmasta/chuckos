@@ -1,0 +1,9 @@
+#!/bin/sh
+# Enable the services ChuckOS needs at boot, and confirm we're not booting
+# to any graphical target (none is installed, but be explicit).
+set -e
+
+echo "[0200-enable-services] enabling ssh, chuckos-firstboot..."
+systemctl enable ssh
+systemctl enable chuckos-firstboot.service
+systemctl set-default multi-user.target
