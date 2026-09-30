@@ -1,9 +1,41 @@
+# editor swap files
 *.swp
+
+# live-build's own top-level scaffolding / build state -- all regenerated
+# by `lb config` / `lb build`, never hand-edited, never tracked
 .build/
 chroot/
-config/binary
-config/bootstrap
-config/chroot
-config/common
+cache/
+local/
+auto/
+binary/
+
+# build outputs
+*.iso
+*.img
+*.zsync
+*.contents
+*.files
+*.packages
+*.buildlog
+
+# vm-test.sh's scratch install disk
+chuckos-test-disk.qcow2
+
+# live-build regenerates a bunch of its own internal scaffolding directly
+# under config/ on every `lb config` run (config/bootstrap, config/binary,
+# config/chroot_apt, config/packages, config/preseed, config/templates,
+# etc. -- the exact set has grown across live-build versions and isn't
+# worth enumerating). Instead: ignore everything under config/ by default,
+# and explicitly re-include only the subdirectories we actually author by
+# hand. Add a new "!config/<dir>/" line here if a new authored subdir is
+# ever added.
+config/*
+!config/package-lists/
+!config/includes.chroot/
+!config/hooks/
+!config/archives/
+
+# ChucK source gets rsync'd into the image at build time from
+# ../chuck-1.5.5.8 -- no need to duplicate it inside this repo too
 config/includes.chroot/usr/local/src/
-config/source

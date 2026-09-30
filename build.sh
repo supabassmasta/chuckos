@@ -110,11 +110,17 @@ echo "[build.sh] configuring live-build (${DISTRIBUTION}/${ARCHITECTURE}, kernel
 # is left to a host-specific system default.
 DEBIAN_MIRROR="http://deb.debian.org/debian/"
 DEBIAN_SECURITY_MIRROR="http://security.debian.org/debian-security/"
+# --security false: this live-build's built-in security-line template
+# generates the pre-2017 "<suite>/updates" suite format, which 404s for
+# any current Debian release (the correct format since stretch is
+# "<suite>-security"). We disable the built-in line and supply the correct
+# one ourselves via config/archives/chuckos-security.list.{chroot,binary}.
 lb config \
   --mode debian \
   --distribution "${DISTRIBUTION}" \
   --architectures "${ARCHITECTURE}" \
   --archive-areas "main contrib non-free non-free-firmware" \
+  --security false \
   --mirror-bootstrap "${DEBIAN_MIRROR}" \
   --mirror-chroot "${DEBIAN_MIRROR}" \
   --mirror-chroot-security "${DEBIAN_SECURITY_MIRROR}" \
