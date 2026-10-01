@@ -105,7 +105,7 @@ case "${1:-}" in
     rm -rf cache .build chroot binary local auto
     for entry in config/*; do
       case "$(basename "$entry")" in
-        archives|hooks|includes.chroot|package-lists) ;; # ours -- keep
+        archives|bootloaders|hooks|includes.chroot|package-lists) ;; # ours -- keep
         *) rm -rf "$entry" ;;
       esac
     done
@@ -151,6 +151,21 @@ DEBIAN_SECURITY_MIRROR="http://security.debian.org/debian-security/"
 # the firmware packages we actually want explicitly in
 # config/package-lists/chuckos.list.chroot, so we skip this (one less
 # network dependency during the build).
+#
+# --bootappend-live "...console=...": this is a headless, terminal-only
+# system -- the kernel must output to the serial port, not just local VGA.
+# ttyS0 first so it's the primary console (login prompt etc. go there);
+# tty1 also listed so a physically-attached monitor still works too.
+# IMPORTANT: --bootappend-live REPLACES live-build's own default value
+# wholesale, it doesn't add to it -- and that default is
+# "boot=live components quiet splash" (see functions/configuration.sh),
+# where "boot=live components" is NOT cosmetic: it's what tells the
+# live-boot initramfs how to find/mount the live filesystem at all.
+# Dropping it (as an earlier version of this script did, by only passing
+# console= here) boots to a BusyBox rescue shell with "No root device
+# specified" -- so it must be included explicitly below. "quiet splash" is
+# intentionally NOT carried over -- we want boot messages visible, not
+# hidden, on a system with no graphical splash anyway.
 "$LB" config \
   --mode debian \
   --ignore-system-defaults \
@@ -159,6 +174,7 @@ DEBIAN_SECURITY_MIRROR="http://security.debian.org/debian-security/"
   --archive-areas "main contrib non-free non-free-firmware" \
   --firmware-chroot false \
   --firmware-binary false \
+  --bootappend-live "boot=live components console=ttyS0,115200n8 console=tty1" \
   --mirror-bootstrap "${DEBIAN_MIRROR}" \
   --mirror-chroot "${DEBIAN_MIRROR}" \
   --mirror-chroot-security "${DEBIAN_SECURITY_MIRROR}" \

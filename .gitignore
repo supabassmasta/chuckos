@@ -39,6 +39,7 @@ config/*
 !config/includes.chroot/
 !config/hooks/
 !config/archives/
+!config/bootloaders/
 
 # ChucK source gets rsync'd into the image at build time from
 # ../chuck-1.5.5.8 -- no need to duplicate it inside this repo too

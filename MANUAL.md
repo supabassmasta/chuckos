@@ -44,11 +44,26 @@ Boots the most recently built ISO in QEMU/KVM with a serial console (no graphica
 `Ctrl-A X` quits). Forwards SSH to `localhost:2222`, and attaches a scratch 8GB disk
 (`chuckos-test-disk.qcow2`) so you can run the installer inside the VM too, not just live-boot it.
 
+**What you'll see on that serial console, and why there's a pause first:** the isolinux boot
+*menu* (the "Live system / Start installer / ..." screen) only draws over VGA graphics
+(`vesamenu.c32`) -- it can't be mirrored to serial, so on a `-nographic` boot like this you won't
+see it at all. It auto-boots the default "Live system" entry after 5 seconds with no input needed,
+so just wait -- once the kernel itself starts, everything (boot messages, login prompt, tmux) is
+fully visible and usable over this serial console, since the kernel is configured to output to
+`ttyS0`. Live-boot default login is the user `user` with no password (auto-logs in on the
+console). If you need to interactively pick a *different* menu entry (e.g. "Start installer")
+rather than wait for the auto-boot default, you need to actually see that VGA menu -- run QEMU
+with a real graphical window instead for that one step (drop `-nographic`/`-serial mon:stdio` from
+a manual `qemu-system-x86_64 ...` invocation, or use a real monitor on physical hardware).
+
 Once it's up:
 ```
 ssh -p 2222 <your-user>@localhost
 chuckos-checklist
 ```
+(`<your-user>` here is whatever account you created while running the installer -- see
+"SSH access" below for the live-boot-only case, where that's just `user`.)
+
 `chuckos-checklist` (baked into the image, works on real hardware too) runs a battery of
 pass/fail checks: RT kernel active, ChucK builds/runs, tmux/git/ssh present, audio-select /
 chuck-run / net-toggle present, MIDI tooling present, rtprio limits configured.
@@ -97,9 +112,15 @@ change it permanently.
 ## SSH access
 
 `openssh-server` is enabled by default (`systemctl enable ssh`, done at build time). On real
-hardware, connect with `ssh <user>@<host-or-ip>` on port 22; the user account itself is whatever
-you create during the Debian installer's user-setup step. In the test VM, it's forwarded to
-`localhost:2222` (see above).
+hardware (or once *installed* in the VM), connect with `ssh <user>@<host-or-ip>` on port 22; the
+user account itself is whatever you create during the Debian installer's user-setup step. In the
+test VM, it's forwarded to `localhost:2222` (see above).
+
+**Live-boot only (before installing), SSH doesn't work yet**: the live session auto-logs in as
+`user` on the local console with no password, but `sshd` correctly refuses empty-password logins
+(`PermitEmptyPasswords no`), so there's no way to SSH in until you've actually installed and
+created a real account. For live-boot-only testing, use the console (serial or local) directly --
+run `chuckos-checklist` there instead of over SSH.
 
 On first boot, `chuckos-firstboot.service` runs once and adds that first regular user to the
 `audio`, `dialout`, and `plugdev` groups (needed for real-time priority and raw device access).
