@@ -44,17 +44,25 @@ Boots the most recently built ISO in QEMU/KVM with a serial console (no graphica
 `Ctrl-A X` quits). Forwards SSH to `localhost:2222`, and attaches a scratch 8GB disk
 (`chuckos-test-disk.qcow2`) so you can run the installer inside the VM too, not just live-boot it.
 
-**What you'll see on that serial console, and why there's a pause first:** the isolinux boot
-*menu* (the "Live system / Start installer / ..." screen) only draws over VGA graphics
-(`vesamenu.c32`) -- it can't be mirrored to serial, so on a `-nographic` boot like this you won't
-see it at all. It auto-boots the default "Live system" entry after 5 seconds with no input needed,
-so just wait -- once the kernel itself starts, everything (boot messages, login prompt, tmux) is
-fully visible and usable over this serial console, since the kernel is configured to output to
-`ttyS0`. Live-boot default login is the user `user` with no password (auto-logs in on the
-console). If you need to interactively pick a *different* menu entry (e.g. "Start installer")
-rather than wait for the auto-boot default, you need to actually see that VGA menu -- run QEMU
-with a real graphical window instead for that one step (drop `-nographic`/`-serial mon:stdio` from
-a manual `qemu-system-x86_64 ...` invocation, or use a real monitor on physical hardware).
+**What you'll see on that serial console:** the isolinux boot menu ("Live system / Start installer
+/ ...") is mirrored to serial too, with a 5-second auto-boot countdown -- it boots the default
+"Live system" entry on its own if you don't press anything. Once the kernel itself starts,
+everything (boot messages, login prompt, tmux) is fully visible and usable over this serial
+console, since the kernel is configured to output to `ttyS0`.
+
+The local/physical console (tty1, e.g. a real monitor, or `vm-test.sh --with-usb`-style direct
+VGA) auto-logs in as `user` with no prompt at all. The *serial* console, deliberately, does not
+auto-login -- it shows a real `login:` prompt. Credentials there are the standard Debian Live
+default: username `user`, password `live` (yes, that's genuinely it -- see
+`/usr/lib/live/config/0030-user-setup` in the image for where it's set; it's a well-known,
+widely-documented default, fine for local testing, not something to rely on if this ever ends up
+reachable on a real network).
+
+Note: live-config's own `1160-openssh-server` component disables SSH *password* auth by default
+at every live boot (sensible, given the well-known password above) -- ChuckOS explicitly
+re-enables it via `config/includes.chroot/etc/ssh/sshd_config.d/10-chuckos.conf`, specifically so
+`user`/`live` works over SSH too for testing. Same caveat applies: fine locally, don't rely on it
+if this is ever reachable on a real network.
 
 Once it's up:
 ```
@@ -116,11 +124,9 @@ hardware (or once *installed* in the VM), connect with `ssh <user>@<host-or-ip>`
 user account itself is whatever you create during the Debian installer's user-setup step. In the
 test VM, it's forwarded to `localhost:2222` (see above).
 
-**Live-boot only (before installing), SSH doesn't work yet**: the live session auto-logs in as
-`user` on the local console with no password, but `sshd` correctly refuses empty-password logins
-(`PermitEmptyPasswords no`), so there's no way to SSH in until you've actually installed and
-created a real account. For live-boot-only testing, use the console (serial or local) directly --
-run `chuckos-checklist` there instead of over SSH.
+**Live-boot only (before installing)**: SSH works too, using the same Debian Live default as the
+serial console -- `ssh -p 2222 user@localhost`, password `live`. See the note under "Testing in a
+VM" above about that default.
 
 On first boot, `chuckos-firstboot.service` runs once and adds that first regular user to the
 `audio`, `dialout`, and `plugdev` groups (needed for real-time priority and raw device access).
