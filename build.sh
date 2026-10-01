@@ -55,6 +55,15 @@ CHUCK_SRC_DEST="config/includes.chroot/usr/local/src/chuck-1.5.5.8"
 LIVE_BUILD_DIR="$SCRIPT_DIR/.live-build"
 LB="$LIVE_BUILD_DIR/frontend/lb"
 export LIVE_BUILD="$LIVE_BUILD_DIR"
+# `lb build` internally dispatches its sub-stages via bare "lb <stage>"
+# calls, not through an absolute self-reference -- so the vendored
+# frontend/ directory must come first on PATH too, or those recursive
+# calls resolve to the system's old /usr/bin/lb instead. That old script
+# would then source functions from LIVE_BUILD (our new vendored tree,
+# still inherited) while running old frontend code -- an old-frontend/
+# new-functions mismatch that crashes immediately (hit this once already:
+# "/usr/bin/lb: 17: Echo: not found", a function the new version renamed).
+export PATH="$LIVE_BUILD_DIR/frontend:$PATH"
 
 if [[ $EUID -ne 0 ]]; then
   echo "error: this script must be run as root (live-build needs root for chroot operations)." >&2
