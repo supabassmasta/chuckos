@@ -49,7 +49,7 @@ for arg in "$@"; do
 done
 
 if [[ -z "$ISO" ]]; then
-  ISO="$(ls -t live-image-*.hybrid.iso 2>/dev/null | head -n1)"
+  ISO="$(ls -t ./*.iso 2>/dev/null | head -n1)"
 fi
 if [[ -z "$ISO" || ! -f "$ISO" ]]; then
   echo "error: no ISO found. Build one first with ./build.sh, or pass a path." >&2

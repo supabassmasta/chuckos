@@ -9,12 +9,22 @@ from the source tree in `../chuck-1.5.5.8`.
 
 On the host machine:
 ```
-sudo apt install live-build debian-archive-keyring qemu-system-x86 qemu-utils rsync
+sudo apt install debootstrap debian-archive-keyring qemu-system-x86 qemu-utils rsync git
 cd chuckos
+./vendor-live-build.sh    # no sudo -- fetches a current live-build, see that script
 sudo ./build.sh
 ```
-This produces `live-image-<arch>.hybrid.iso` in this directory. `build.sh` never calls `sudo`
-itself -- you always run it as root explicitly, so it's obvious when privileged work is happening.
+This produces a `.iso` file in this directory. `build.sh` never calls `sudo` itself -- you always
+run it as root explicitly, so it's obvious when privileged work is happening.
+
+**Why `./vendor-live-build.sh` instead of `apt install live-build`:** the live-build Debian/Ubuntu
+packages this host, `3.0~a57`, is a very old (circa 2012) snapshot with several hardcoded
+assumptions that don't hold for a current Debian release -- wrong security-archive suite naming,
+obsolete bootloader/kernel package names, Ubuntu mirror defaults leaking in from
+`/etc/live/build.conf`. `vendor-live-build.sh` clones a current copy from Debian's live-team
+upstream into `.live-build/` (gitignored) instead -- a plain, unprivileged git clone that never
+touches the host's own `live-build` package. `build.sh` uses it automatically once present; re-run
+`./vendor-live-build.sh` any time to update it.
 
 **To customize:**
 - Add/remove a package → edit `config/package-lists/chuckos.list.chroot` (one package per line),

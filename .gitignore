@@ -1,6 +1,10 @@
 # editor swap files
 *.swp
 
+# vendored live-build checkout (see vendor-live-build.sh) -- a third-party
+# git clone, not ours to track
+.live-build/
+
 # live-build's own top-level scaffolding / build state -- all regenerated
 # by `lb config` / `lb build`, never hand-edited, never tracked
 .build/

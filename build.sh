@@ -19,10 +19,8 @@
 #     order, after packages and includes.chroot are in place)
 #
 # Requires (on the host, install yourself -- this script never calls sudo):
-#   sudo apt install live-build debian-archive-keyring
-# (debian-archive-keyring is needed even on a Debian host, and especially on
-# a non-Debian host such as Ubuntu, so debootstrap can verify Debian's
-# Release signatures when building a Debian target.)
+#   sudo apt install debootstrap debian-archive-keyring
+#   ./vendor-live-build.sh    (no sudo -- see that script for why)
 # Must itself be run as root (live-build needs it for chroot operations).
 
 set -euo pipefail
@@ -34,14 +32,29 @@ DISTRIBUTION="bookworm"
 ARCHITECTURE="amd64"
 # live-build constructs the actual kernel package name as
 # "<linux-packages-prefix>-<linux-flavours>" -- the prefix defaults
-# correctly to "linux-image" under --mode debian and should not be
-# touched; this is only the flavour suffix, giving "linux-image-rt-amd64"
-# (Debian's real PREEMPT_RT kernel package name).
+# correctly to "linux-image" and should not be touched; this is only the
+# flavour suffix, giving "linux-image-rt-amd64" (Debian's real PREEMPT_RT
+# kernel package name).
 KERNEL_FLAVOUR="rt-${ARCHITECTURE}"
 
 # where the ChucK source lives, relative to this script
 CHUCK_SRC="$SCRIPT_DIR/../chuck-1.5.5.8"
 CHUCK_SRC_DEST="config/includes.chroot/usr/local/src/chuck-1.5.5.8"
+
+# we use a vendored, known-current live-build (see vendor-live-build.sh)
+# instead of the system package -- the one Ubuntu ships is a very old,
+# Ubuntu-patched snapshot (3.0~a57, circa 2012) with several hardcoded
+# assumptions that don't hold for a current Debian target (wrong
+# security-archive suite naming, obsolete bootloader/kernel package names,
+# Ubuntu mirror/keyring defaults leaking in from /etc/live/build.conf) --
+# all fixed/removed upstream since. LIVE_BUILD is live-build's own env var
+# for "use these scripts instead of /usr/lib/live/build" -- it is exported
+# so every invocation below (and everything live-build shells out to)
+# consistently uses the vendored copy, never silently falling back to the
+# system one.
+LIVE_BUILD_DIR="$SCRIPT_DIR/.live-build"
+LB="$LIVE_BUILD_DIR/frontend/lb"
+export LIVE_BUILD="$LIVE_BUILD_DIR"
 
 if [[ $EUID -ne 0 ]]; then
   echo "error: this script must be run as root (live-build needs root for chroot operations)." >&2
@@ -49,9 +62,10 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
-if ! command -v lb >/dev/null 2>&1; then
-  echo "error: live-build is not installed. On the host, run:" >&2
-  echo "  sudo apt install live-build" >&2
+if [[ ! -x "$LB" ]]; then
+  echo "error: vendored live-build not found at $LIVE_BUILD_DIR." >&2
+  echo "  fetch it first (no sudo needed):" >&2
+  echo "  ./vendor-live-build.sh" >&2
   exit 1
 fi
 
@@ -66,7 +80,7 @@ fi
 case "${1:-}" in
   clean|cleanonly)
     echo "[build.sh] cleaning previous build artifacts..."
-    lb clean --purge || true
+    "$LB" clean --purge || true
     # lb clean --purge does not reliably drop the bootstrap cache, nor does
     # it touch live-build's own internal config/* metadata files -- and
     # `lb config` itself MERGES onto whatever is already in config/ rather
@@ -112,47 +126,28 @@ rsync -a --delete \
   "$CHUCK_SRC/" "$CHUCK_SRC_DEST/"
 
 echo "[build.sh] configuring live-build (${DISTRIBUTION}/${ARCHITECTURE}, kernel flavour=${KERNEL_FLAVOUR})..."
-# --mode debian plus explicit Debian mirrors: live-build otherwise infers
-# defaults (mirror, keyring) from the *host* OS. On a non-Debian host (e.g.
-# this being built from Ubuntu) that silently points debootstrap at the
-# Ubuntu archive, which has no "bookworm" suite and fails with a 404 on
-# Release. Forcing these explicitly makes the target Debian regardless of
-# host.
-# the actual debootstrap invocation uses the *parent* mirror settings
-# (LB_PARENT_MIRROR_BOOTSTRAP etc), not the plain --mirror-* ones -- those
-# only affect the chroot's apt sources.list *after* bootstrapping. On this
-# host, /etc/live/build.conf (shipped by Ubuntu's live-build package)
-# apparently defaults the parent mirror to archive.ubuntu.com, and plain
-# --mirror-bootstrap does not override that. Set both explicitly so nothing
-# is left to a host-specific system default.
 DEBIAN_MIRROR="http://deb.debian.org/debian/"
 DEBIAN_SECURITY_MIRROR="http://security.debian.org/debian-security/"
-# --security false: this live-build's built-in security-line template
-# generates the pre-2017 "<suite>/updates" suite format, which 404s for
-# any current Debian release (the correct format since stretch is
-# "<suite>-security"). We disable the built-in line and supply the correct
-# one ourselves via config/archives/chuckos-security.list.{chroot,binary}.
+# --ignore-system-defaults: skip /etc/live/build.conf -- belt-and-suspenders
+# alongside the explicit mirror/keyring flags below, so nothing is left to
+# a host-specific system default regardless of what's installed here.
 #
-# --keyring-packages debian-archive-keyring: same host-default-leaking
-# pattern as the mirrors -- without this, live-build tries to install
-# "ubuntu-keyring" into the chroot, which doesn't exist in Debian's
-# archive and fails the build.
+# --keyring-packages debian-archive-keyring: makes sure the chroot trusts
+# (and, more importantly, ends up with) the Debian archive key, not
+# whatever a given host's live-build might otherwise default to.
 #
-# --firmware-chroot false / --firmware-binary false: without these,
-# live-build tries to auto-detect firmware packages matching installed
-# hardware drivers by downloading and parsing dists/<suite>/Contents-<arch>.gz
-# (see /usr/lib/live/build/lb_chroot_linux-image and
-# lb_binary_debian-installer) -- but that top-level, non-component Contents
-# file 404s against current Debian mirrors, failing the build. We already
-# list the firmware packages we actually want explicitly in
-# config/package-lists/chuckos.list.chroot, so we don't need this
-# auto-detection at all.
-lb config \
+# --firmware-chroot false / --firmware-binary false: live-build can
+# auto-detect firmware packages matching installed hardware drivers by
+# downloading and parsing dists/<suite>/Contents-<arch>.gz. We already list
+# the firmware packages we actually want explicitly in
+# config/package-lists/chuckos.list.chroot, so we skip this (one less
+# network dependency during the build).
+"$LB" config \
   --mode debian \
+  --ignore-system-defaults \
   --distribution "${DISTRIBUTION}" \
-  --architectures "${ARCHITECTURE}" \
+  --architecture "${ARCHITECTURE}" \
   --archive-areas "main contrib non-free non-free-firmware" \
-  --security false \
   --firmware-chroot false \
   --firmware-binary false \
   --mirror-bootstrap "${DEBIAN_MIRROR}" \
@@ -165,15 +160,11 @@ lb config \
   --parent-mirror-chroot-security "${DEBIAN_SECURITY_MIRROR}" \
   --parent-mirror-binary "${DEBIAN_MIRROR}" \
   --parent-mirror-binary-security "${DEBIAN_SECURITY_MIRROR}" \
-  --mirror-chroot-volatile "${DEBIAN_MIRROR}" \
-  --parent-mirror-chroot-volatile "${DEBIAN_MIRROR}" \
-  --mirror-binary-volatile "${DEBIAN_MIRROR}" \
-  --parent-mirror-binary-volatile "${DEBIAN_MIRROR}" \
   --mirror-debian-installer "${DEBIAN_MIRROR}" \
   --parent-mirror-debian-installer "${DEBIAN_MIRROR}" \
   --keyring-packages "debian-archive-keyring" \
   --linux-flavours "${KERNEL_FLAVOUR}" \
-  --binary-images iso-hybrid \
+  --binary-image iso-hybrid \
   --debian-installer live \
   --debian-installer-gui false \
   --iso-application "ChuckOS" \
@@ -182,22 +173,21 @@ lb config \
 echo "[build.sh] verifying resolved bootstrap mirror..."
 if [[ -f config/bootstrap ]] && grep -qi "archive.ubuntu.com" config/bootstrap; then
   echo "error: config/bootstrap still references archive.ubuntu.com after lb config." >&2
-  echo "  this usually means /etc/live/build.conf on this host is overriding our" >&2
-  echo "  settings. Contents of config/bootstrap for reference:" >&2
+  echo "  Contents of config/bootstrap for reference:" >&2
   grep -i mirror config/bootstrap >&2 || true
   exit 1
 fi
 
 echo "[build.sh] building image (this can take a while)..."
-lb build
+"$LB" build
 
-ISO="$(ls -1t live-image-*.hybrid.iso 2>/dev/null | head -n1)"
+ISO="$(ls -1t ./*.iso 2>/dev/null | head -n1)"
 if [[ -n "$ISO" ]]; then
-  echo "[build.sh] done: ${SCRIPT_DIR}/${ISO} ($(du -h "$ISO" | cut -f1))"
+  echo "[build.sh] done: ${SCRIPT_DIR}/${ISO#./} ($(du -h "$ISO" | cut -f1))"
   echo "[build.sh] write it to a USB stick with, e.g.:"
   echo "  lsblk                      # find the right device first!"
-  echo "  sudo dd if=${ISO} of=/dev/sdX bs=4M status=progress conv=fsync"
+  echo "  sudo dd if=${ISO#./} of=/dev/sdX bs=4M status=progress conv=fsync"
   echo "  (double check /dev/sdX -- the wrong device means data loss)"
 else
-  echo "[build.sh] warning: build finished but no live-image-*.hybrid.iso was found; check output above." >&2
+  echo "[build.sh] warning: build finished but no .iso file was found; check output above." >&2
 fi
