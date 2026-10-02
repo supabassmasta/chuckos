@@ -122,8 +122,26 @@ physical console (tty1-6) or over SSH, so you see the same windows either way.
 | `Ctrl-b` `c` | create a new window |
 | `Ctrl-b` `,` | rename the current window |
 | `Ctrl-b` `d` | detach (session keeps running in the background) |
-| `Ctrl-b` `[` | enter scrollback/copy mode (`q` to exit) |
+| `Ctrl-b` `[` | enter scrollback/copy mode, then `↑`/`↓`/`PageUp`/`PageDown` to scroll, `q` to exit |
 | `tmux attach -t main` | reattach manually if you ever exit the shell entirely |
+
+**Mouse wheel scrolling**: works over SSH (your terminal client sends proper scroll-wheel escape
+sequences, which tmux reads directly), but not at the physical/local console. That's a `gpm`
+limitation, not something fixable in `tmux.conf`: `gpm` provides console copy/paste (click-drag to
+select, middle-click to paste -- this part works everywhere) by managing its own selection buffer
+directly at the console level, but it doesn't forward general mouse events -- including the wheel
+-- to the foreground application the way a real terminal emulator does. There's no clean fix for
+this on a raw Linux console short of running a full terminal-emulator layer (e.g. `fbterm`), which
+would be a much bigger change than this is worth. Use `Ctrl-b [` then `PageUp`/`PageDown`/arrows
+for scrollback at the physical console instead -- it's reliable everywhere.
+
+**Alt+←/→ not switching windows at the physical console?** This was a real bug, fixed: `tmux`'s
+`M-Left`/`M-Right` bindings only recognize the xterm-style escape sequence for Alt+arrow (what an
+SSH client's terminal emulator sends), not the Linux console's own encoding for the same keypress
+(`ESC ESC [ D` / `ESC ESC [ C` -- the console's Meta/Alt handling just prefixes a second ESC onto
+the plain arrow key's sequence, which is different from xterm's single-sequence-with-modifier
+form). `/etc/tmux.conf` now binds both forms explicitly (see the `user-keys` lines), so Alt+←/→
+should work at the physical console too as of this build.
 
 Config lives at `/etc/tmux.conf` -- edit `config/includes.chroot/etc/tmux.conf` and rebuild to
 change it permanently.
@@ -215,6 +233,16 @@ automatically -- nothing to do by hand:
   above, so this re-applies it each time).
 - **rtprio/memlock limits** for the `audio` group are set in
   `/etc/security/limits.d/99-chuckos-audio.conf` (rtprio 95, memlock unlimited, nice -19).
+- **Actually requesting RT priority for ChucK itself**: the limits above only raise the *ceiling* --
+  a process still has to explicitly ask for real-time scheduling. ChucK does this on its own (see
+  `core/util_thread.cpp`/`host/chuck_main.cpp` in the ChucK source), but its *default* request is
+  `sched_get_priority_max(SCHED_RR)` -- 99 on Linux, the literal system max, above our 95 ceiling --
+  so the self-promotion silently fails (`EPERM`) and ChucK just runs as a normal process with no RT
+  priority at all. `chuck-run` passes `--level:90` explicitly to avoid this (comfortably under the
+  ceiling, and comfortably under 99, which is conventionally reserved for kernel RT threads --
+  raising the ceiling to 99 instead would be the wrong fix). **Always use `chuck-run`, not bare
+  `chuck`, to actually get real-time scheduling** -- `chuckos-checklist` verifies the `--level:`
+  value stays within the configured ceiling, but running plain `chuck` skips this entirely.
 
 The one knob left to tune by hand, per ChucK invocation, is buffer size/count:
 ```

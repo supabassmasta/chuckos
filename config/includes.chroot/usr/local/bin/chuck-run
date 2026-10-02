@@ -2,6 +2,20 @@
 # ChuckOS: run chuck against whichever sound card is currently selected
 # (see audio-select). Extra arguments are passed straight through to chuck,
 # e.g.:  chuck-run --bufsize:64 --bufnum:4 myfile.ck
+#
+# --level:90: ChucK tries to self-promote its audio thread to SCHED_RR by
+# default (see host/chuck_main.cpp / core/util_thread.cpp in the ChucK
+# source), but its DEFAULT request is sched_get_priority_max(SCHED_RR) --
+# 99 on Linux, the literal system max. That's above our configured rtprio
+# ceiling (95, see /etc/security/limits.d/99-chuckos-audio.conf), so the
+# self-promotion silently fails with EPERM and chuck just runs as a normal
+# SCHED_OTHER process -- no RT priority at all, audible glitches under
+# load. Pass an explicit level comfortably under that ceiling instead (and
+# comfortably under 99, which is conventionally reserved for kernel RT
+# threads like watchdog/migration -- raising our ceiling to 99 to match
+# chuck's greedy default would be the wrong fix). A later --level:N of
+# your own (passed through "$@") overrides this, since chuck keeps
+# whichever --level flag appears last.
 set -euo pipefail
 
 STATE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/chuckos/audio-device"
@@ -13,4 +27,4 @@ case "$SELECTED" in
 esac
 
 echo "[chuck-run] audio device: $SELECTED (matching '$PATTERN')" >&2
-exec chuck --driver:alsa "--dac:${PATTERN}" "$@"
+exec chuck --driver:alsa "--dac:${PATTERN}" --level:90 "$@"
