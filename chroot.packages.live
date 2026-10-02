@@ -17,6 +17,10 @@ build-essential	12.9
 busybox	1:1.35.0-4+deb12u1+b1
 bzip2	1.0.8-5+b1
 ca-certificates	20250419~deb12u1
+console-common	0.7.91
+console-data	2:1.12-9
+console-setup	1.221
+console-setup-linux	1.221
 coreutils	9.1-1
 cpio	2.13+dfsg-7.1
 cpp	4:12.2.0-3
@@ -67,6 +71,7 @@ gpg-wks-server	2.2.40-1.1+deb12u2
 gpgconf	2.2.40-1.1+deb12u2
 gpgsm	2.2.40-1.1+deb12u2
 gpgv	2.2.40-1.1+deb12u2
+gpm	1.20.7-10+b1
 grep	3.8-5
 gzip	1.12-1
 hostname	3.23+nmu1
@@ -80,6 +85,7 @@ iproute2	6.1.0-3
 iputils-ping	3:20221126-1+deb12u1
 isc-dhcp-client	4.4.3-P1-2
 isc-dhcp-common	4.4.3-P1-2
+kbd	2.5.1-1+b1
 keyboard-configuration	1.221
 klibc-utils	2.0.12-1
 kmod	30+20221128-1

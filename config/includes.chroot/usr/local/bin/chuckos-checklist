@@ -26,7 +26,8 @@ check "chuck binary present"     bash -c 'command -v chuck'
 check "chuck runs a program (silent mode)" bash -c \
   'echo "<<< \"success\" >>>;" > /tmp/chuckos-t.ck &&
    chuck --silent --chugin-load:off /tmp/chuckos-t.ck 2>&1 | grep -q "\"success\""'
-check "chuck --probe reports audio devices" bash -c 'chuck --probe 2>&1 | grep -qi "dac\|adc\|device"'
+check "chuck --probe finds at least one audio device" bash -c \
+  '! chuck --probe 2>&1 | grep -qi "found 0 audio device"'
 check "tmux present"              bash -c 'command -v tmux'
 check "tmux config present"       test -f /etc/tmux.conf
 check "git present"                bash -c 'command -v git'

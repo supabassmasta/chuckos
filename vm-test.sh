@@ -6,6 +6,8 @@
 #   ./vm-test.sh path/to/some.iso   # boot a specific ISO
 #   ./vm-test.sh --with-usb         # also pass through MIDI/audio USB devices (see below)
 #   ./vm-test.sh --list-usb         # just print `lsusb`, to find vendor:product IDs
+#   ./vm-test.sh --with-audio-host  # route the VM's virtual sound card to this host's
+#                                    # speakers too (see below), instead of nowhere
 #
 # Once booted: ssh -p 2222 <user>@localhost
 # Ctrl-A X quits QEMU from this console (it's serial-only, no graphical window).
@@ -19,6 +21,15 @@
 # then pass --with-usb. This grabs the device exclusively from the host
 # for as long as the VM runs, and usually needs the VM itself run as root
 # (sudo ./vm-test.sh --with-usb) to open /dev/bus/usb/*.
+#
+# A virtual Intel HDA sound card is always attached (matching the "HDA"
+# audio-select default), so `chuck --probe`/`chuckos-checklist` see a real
+# device -- but by default it's not routed anywhere audible (QEMU's "none"
+# audio backend), just present for functional testing. Pass
+# --with-audio-host to route it to this host's speakers via PulseAudio/
+# PipeWire-pulse (edit AUDIO_HOST_BACKEND below if your host needs a
+# different QEMU audio backend, e.g. "pipewire" or "alsa" -- see
+# `qemu-system-x86_64 -audiodev help`).
 #
 # IMPORTANT: audio/MIDI *latency* numbers measured inside this VM are not
 # meaningful -- virtualization scheduling jitter dominates them. Use this
@@ -37,13 +48,20 @@ LAUNCHPAD_ID="1235:0069"   # e.g. "1235:0069"
 SCARLETT_ID="1235:8200"    # e.g. "1235:8211"
 # ---------------------------------------------------------------------
 
+# QEMU audio backend used for --with-audio-host. "pa" (PulseAudio) is the
+# most portable choice -- works natively or via PipeWire's pulse-compat
+# shim, which covers most current desktops (including this one).
+AUDIO_HOST_BACKEND="pa"
+
 WITH_USB=0
+WITH_AUDIO_HOST=0
 ISO=""
 
 for arg in "$@"; do
   case "$arg" in
     --list-usb) lsusb; exit 0 ;;
     --with-usb) WITH_USB=1 ;;
+    --with-audio-host) WITH_AUDIO_HOST=1 ;;
     *.iso) ISO="$arg" ;;
   esac
 done
@@ -86,6 +104,14 @@ QEMU_ARGS=(
   -device virtio-net-pci,netdev=net0
 )
 [[ -f "$DISK" ]] && QEMU_ARGS+=( -drive "file=$DISK,if=virtio,format=qcow2" )
+
+if [[ $WITH_AUDIO_HOST -eq 1 ]]; then
+  QEMU_ARGS+=( -audiodev "${AUDIO_HOST_BACKEND},id=chuckaudio" )
+  echo "[vm-test.sh] virtual sound card routed to host audio (backend=${AUDIO_HOST_BACKEND})"
+else
+  QEMU_ARGS+=( -audiodev none,id=chuckaudio )
+fi
+QEMU_ARGS+=( -device intel-hda -device hda-duplex,audiodev=chuckaudio )
 
 if [[ $WITH_USB -eq 1 ]]; then
   QEMU_ARGS+=( -device qemu-xhci )

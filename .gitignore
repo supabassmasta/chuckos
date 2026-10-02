@@ -49,3 +49,8 @@ config/*
 # ChucK source gets rsync'd into the image at build time from
 # ../chuck-1.5.5.8 -- no need to duplicate it inside this repo too
 config/includes.chroot/usr/local/src/
+
+# MANUAL.md gets copied into the image at build time (see build.sh) from
+# the real one at the repo root -- tracking both would just mean every
+# manual edit shows up as two diffs
+config/includes.chroot/MANUAL.md

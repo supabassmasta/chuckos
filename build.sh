@@ -134,6 +134,18 @@ rsync -a --delete \
   --exclude '.git' \
   "$CHUCK_SRC/" "$CHUCK_SRC_DEST/"
 
+# Copy (not symlink) MANUAL.md into the image so it's readable on the
+# booted system at /MANUAL.md. This has to be a real copy done here, on
+# the host, before the build: live-build copies config/includes.chroot/
+# content with rsync -l (preserves symlinks as symlinks, literal target
+# unchanged), so a symlink to ../../MANUAL.md -- correct relative to its
+# location in this project tree -- would resolve to nothing once relocated
+# to / in the actual image. Chroot-side hooks (config/hooks/live/*.chroot)
+# can't do this either: they run jailed via `Chroot chroot ...`, with no
+# access to anything outside the chroot, including this project's own
+# MANUAL.md.
+cp -f "$SCRIPT_DIR/MANUAL.md" config/includes.chroot/MANUAL.md
+
 echo "[build.sh] configuring live-build (${DISTRIBUTION}/${ARCHITECTURE}, kernel flavour=${KERNEL_FLAVOUR})..."
 DEBIAN_MIRROR="http://deb.debian.org/debian/"
 DEBIAN_SECURITY_MIRROR="http://security.debian.org/debian-security/"

@@ -85,6 +85,17 @@ sudo ./vm-test.sh --with-usb     # usually needs root to open /dev/bus/usb/*
 ```
 Passthrough grabs the device exclusively from the host while the VM runs.
 
+**Audio device**: a virtual Intel HDA sound card is always attached, so `chuck --probe` /
+`aplay -l` / `chuckos-checklist` see a real device (matching the "HDA" `audio-select` default) --
+but by default it's not routed anywhere audible, just present for functional testing. To actually
+hear test tones on this host's speakers:
+```
+./vm-test.sh --with-audio-host
+```
+Uses PulseAudio (works via native PulseAudio or PipeWire's pulse-compat shim, which covers most
+current desktops); edit `AUDIO_HOST_BACKEND` in `vm-test.sh` if your host needs a different QEMU
+audio backend (`qemu-system-x86_64 -audiodev help` lists what's available).
+
 **Important**: latency *numbers* measured inside this VM are not trustworthy -- virtualization
 scheduling jitter dominates them. Use the VM to confirm things boot and work correctly; measure
 actual latency only on real hardware.
