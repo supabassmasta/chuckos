@@ -166,6 +166,13 @@ DEBIAN_SECURITY_MIRROR="http://security.debian.org/debian-security/"
 # specified" -- so it must be included explicitly below. "quiet splash" is
 # intentionally NOT carried over -- we want boot messages visible, not
 # hidden, on a system with no graphical splash anyway.
+#
+# --bootappend-install "keymap=fr": sets the Debian Installer's own
+# keyboard-layout question to French/AZERTY by default too (its early
+# keyboard-selection screen runs before any preseed file would normally be
+# read, so this has to go on the kernel cmdline, not a config file).
+# Unlike --bootappend-live above, this one is safe to pass standalone --
+# live-build appends to it rather than replacing a default outright.
 "$LB" config \
   --mode debian \
   --ignore-system-defaults \
@@ -189,6 +196,7 @@ DEBIAN_SECURITY_MIRROR="http://security.debian.org/debian-security/"
   --parent-mirror-debian-installer "${DEBIAN_MIRROR}" \
   --keyring-packages "debian-archive-keyring" \
   --linux-flavours "${KERNEL_FLAVOUR}" \
+  --bootappend-install "keymap=fr" \
   --binary-image iso-hybrid \
   --debian-installer live \
   --debian-installer-gui false \

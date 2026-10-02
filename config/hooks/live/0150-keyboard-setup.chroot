@@ -1,0 +1,13 @@
+#!/bin/sh
+# Regenerate console-setup's cached keymap/font files to match the AZERTY
+# default in /etc/default/keyboard (included earlier via includes.chroot).
+# Without this, the package's own postinst (which already ran during
+# package install, before our file was in place) leaves caches reflecting
+# whatever debconf default it picked -- usually US/QWERTY.
+set -e
+
+echo "[0150-keyboard-setup] applying AZERTY (fr) console keymap..."
+export DEBIAN_FRONTEND=noninteractive
+echo "keyboard-configuration keyboard-configuration/xkb-keymap select fr" | debconf-set-selections
+dpkg-reconfigure -f noninteractive keyboard-configuration
+dpkg-reconfigure -f noninteractive console-setup

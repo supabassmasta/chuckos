@@ -40,6 +40,10 @@ check "cpupower present"           bash -c 'command -v cpupower'
 check "cpu governor service active" systemctl is-active --quiet chuckos-cpu-governor.service
 check "CPU isolation configured in grub (>=4 cores only)" bash -c \
   '[[ $(nproc) -lt 4 ]] || grep -q "isolcpus=" /etc/default/grub'
+check "AZERTY keymap configured"   bash -c 'grep -q "^XKBLAYOUT=\"fr\"" /etc/default/keyboard'
+check "gpm (console mouse) active" systemctl is-active --quiet gpm
+check "tmux mouse mode enabled"    bash -c 'grep -q "^set -g mouse on" /etc/tmux.conf'
+check "chuckos-power present"      bash -c 'command -v chuckos-power'
 
 echo "=== $PASS passed, $FAIL failed ==="
 [[ $FAIL -eq 0 ]]

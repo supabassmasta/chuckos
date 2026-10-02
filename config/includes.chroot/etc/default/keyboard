@@ -1,0 +1,10 @@
+# ChuckOS default console keymap: French (AZERTY).
+# Applies to the local/physical console (tty1 etc) -- not SSH or serial,
+# where keystroke interpretation happens on the connecting client/terminal,
+# not here. Change XKBLAYOUT and rebuild if you want a different layout.
+XKBMODEL="pc105"
+XKBLAYOUT="fr"
+XKBVARIANT=""
+XKBOPTIONS=""
+
+BACKSPACE="guess"

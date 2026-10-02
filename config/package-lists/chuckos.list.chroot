@@ -13,6 +13,12 @@ usbutils
 htop
 vim
 
+## --- keyboard (AZERTY/French by default) + console mouse ---
+console-setup
+keyboard-configuration
+console-data
+gpm
+
 ## --- audio / MIDI tooling ---
 alsa-utils
 libasound2-dev

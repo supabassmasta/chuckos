@@ -160,6 +160,32 @@ net-toggle all  on|off|status
 Uses `rfkill` for wifi and `ip link` for the wired interface; both need `sudo` (you'll be
 prompted for your password).
 
+## Keyboard, mouse, power
+
+- **Keyboard**: French/AZERTY by default, for both the running system (`/etc/default/keyboard`,
+  `XKBLAYOUT="fr"`) and the Debian Installer's own keyboard-selection screen. This is the
+  *console* keymap -- it only matters for a physical keyboard plugged directly into the machine;
+  SSH and serial sessions use whatever layout your own terminal/client is already set to. To use a
+  different layout, edit `config/includes.chroot/etc/default/keyboard` (`XKBLAYOUT`) and the
+  `keymap=fr` in `build.sh`'s `--bootappend-install`, then rebuild.
+- **Mouse**: `gpm` provides mouse support at the physical/local console (e.g. for text
+  selection), and tmux's own mouse mode is on (click to switch panes/windows, wheel to scroll,
+  drag to resize -- hold Shift while selecting to bypass tmux and use your terminal's native
+  text selection instead).
+- **Power**:
+  ```
+  chuckos-power off         # shut down
+  chuckos-power reboot
+  chuckos-power suspend     # sleep to RAM -- works out of the box on most hardware
+  chuckos-power hibernate   # sleep to disk -- needs swap >= RAM, see below
+  chuckos-power status      # shows RAM/swap and which of the above are actually usable
+  ```
+  Hibernate needs a swap partition/file at least as large as RAM. On a live-boot USB session
+  there's no persistent swap at all, so hibernate is never available there -- only after
+  installing to disk, and only if you gave it enough swap during partitioning. `chuckos-power
+  status` tells you where you stand; `chuckos-power hibernate` refuses with a clear error instead
+  of failing unpredictably if swap isn't sufficient.
+
 ## Tuning latency
 
 The kernel is already PREEMPT_RT (`linux-image-rt-amd64`), and the following are handled

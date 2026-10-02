@@ -3,28 +3,33 @@
 
 # vendored live-build checkout (see vendor-live-build.sh) -- a third-party
 # git clone, not ours to track
-.live-build/
+/.live-build/
 
 # live-build's own top-level scaffolding / build state -- all regenerated
-# by `lb config` / `lb build`, never hand-edited, never tracked
-.build/
-chroot/
-cache/
-local/
-auto/
-binary/
+# by `lb config` / `lb build`, never hand-edited, never tracked.
+# IMPORTANT: these are all anchored to the repo root (leading /) -- without
+# that, e.g. a bare "local/" also matches config/includes.chroot/usr/local/
+# (our own image's filesystem layout), silently swallowing anything placed
+# there. Caught this once already: chuckos-power never got tracked because
+# of exactly this.
+/.build/
+/chroot/
+/cache/
+/local/
+/auto/
+/binary/
 
 # build outputs
-*.iso
-*.img
-*.zsync
-*.contents
-*.files
-*.packages
-*.buildlog
+/*.iso
+/*.img
+/*.zsync
+/*.contents
+/*.files
+/*.packages
+/*.buildlog
 
 # vm-test.sh's scratch install disk
-chuckos-test-disk.qcow2
+/chuckos-test-disk.qcow2
 
 # live-build regenerates a bunch of its own internal scaffolding directly
 # under config/ on every `lb config` run (config/bootstrap, config/binary,

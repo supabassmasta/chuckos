@@ -1,0 +1,67 @@
+#!/bin/bash
+# ChuckOS: power commands.
+# Usage: chuckos-power {off|reboot|suspend|hibernate|status}
+#
+#   off       shut the machine down
+#   reboot    restart
+#   suspend   sleep to RAM (fast resume, works on most hardware out of the box)
+#   hibernate sleep to disk (needs swap >= RAM -- see "status" to check
+#             readiness; live-boot USB sessions can't hibernate at all,
+#             there's no persistent swap on the live medium)
+#   status    show which of the above are actually usable right now, and why
+set -euo pipefail
+
+run() {
+  if [[ $EUID -eq 0 ]]; then "$@"; else sudo "$@"; fi
+}
+
+hibernate_ready() {
+  # swap total, in kB, from /proc/meminfo
+  local swap_kb mem_kb
+  swap_kb="$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)"
+  mem_kb="$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)"
+  [[ "${swap_kb:-0}" -gt 0 ]] && [[ "${swap_kb}" -ge "${mem_kb}" ]]
+}
+
+case "${1:-status}" in
+  off|poweroff|shutdown)
+    echo "[chuckos-power] shutting down..."
+    run systemctl poweroff
+    ;;
+  reboot|restart)
+    echo "[chuckos-power] rebooting..."
+    run systemctl reboot
+    ;;
+  suspend|sleep)
+    echo "[chuckos-power] suspending to RAM..."
+    run systemctl suspend
+    ;;
+  hibernate)
+    if ! hibernate_ready; then
+      echo "error: no swap, or swap smaller than RAM -- hibernate needs swap >= RAM." >&2
+      echo "  run 'chuckos-power status' for details. Not available on a live-boot" >&2
+      echo "  USB session at all (no persistent swap on the live medium) -- only" >&2
+      echo "  after installing, with a large-enough swap partition/file." >&2
+      exit 1
+    fi
+    echo "[chuckos-power] hibernating..."
+    run systemctl hibernate
+    ;;
+  status)
+    swap_kb="$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)"
+    mem_kb="$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)"
+    echo "RAM:  $((mem_kb / 1024)) MB"
+    echo "swap: $((swap_kb / 1024)) MB"
+    echo "off / reboot / suspend: available"
+    if hibernate_ready; then
+      echo "hibernate: available (swap >= RAM)"
+    else
+      echo "hibernate: NOT available (needs swap >= RAM; on live-boot USB this is never"
+      echo "  available at all -- install to disk with a large-enough swap first)"
+    fi
+    ;;
+  *)
+    echo "usage: chuckos-power {off|reboot|suspend|hibernate|status}" >&2
+    exit 1
+    ;;
+esac
