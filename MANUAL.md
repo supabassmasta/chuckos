@@ -117,7 +117,8 @@ physical console (tty1-6) or over SSH, so you see the same windows either way.
 
 | Keys | Action |
 |---|---|
-| `Alt` + `→` / `←` | switch to next/previous window (no prefix needed -- this is the "Alt-Tab" feel) |
+| `Alt` + `n` / `Alt` + `p` | switch to next/previous window (no prefix needed; works on the physical console too) |
+| `Alt` + `→` / `←` | same, over SSH only -- on the physical console these switch virtual terminals instead (see below) |
 | `Alt` + `1`..`5` | jump straight to window 1-5 |
 | `Ctrl-b` `c` | create a new window |
 | `Ctrl-b` `,` | rename the current window |
@@ -135,13 +136,12 @@ this on a raw Linux console short of running a full terminal-emulator layer (e.g
 would be a much bigger change than this is worth. Use `Ctrl-b [` then `PageUp`/`PageDown`/arrows
 for scrollback at the physical console instead -- it's reliable everywhere.
 
-**Alt+←/→ not switching windows at the physical console?** This was a real bug, fixed: `tmux`'s
-`M-Left`/`M-Right` bindings only recognize the xterm-style escape sequence for Alt+arrow (what an
-SSH client's terminal emulator sends), not the Linux console's own encoding for the same keypress
-(`ESC ESC [ D` / `ESC ESC [ C` -- the console's Meta/Alt handling just prefixes a second ESC onto
-the plain arrow key's sequence, which is different from xterm's single-sequence-with-modifier
-form). `/etc/tmux.conf` now binds both forms explicitly (see the `user-keys` lines), so Alt+←/→
-should work at the physical console too as of this build.
+**Why Alt+←/→ doesn't work at the physical console**: the Linux console keymap (the French
+one included) binds Alt+← and Alt+→ to switching virtual terminals (`Decr_Console` /
+`Incr_Console`), so the keypress never reaches tmux there. The Windows/Super keys are mapped to
+Alt on this keymap, so they behave the same way and don't help. `Alt+n` / `Alt+p` are not bound
+by the kernel and work everywhere. Virtual-terminal switching is still available with
+`Ctrl`+`Alt`+`F1`..`F6`.
 
 Config lives at `/etc/tmux.conf` -- edit `config/includes.chroot/etc/tmux.conf` and rebuild to
 change it permanently.
