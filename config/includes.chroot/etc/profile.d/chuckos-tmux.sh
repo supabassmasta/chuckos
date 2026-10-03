@@ -8,7 +8,8 @@ case "$-" in
     *) return 2>/dev/null || exit 0 ;;
 esac
 
-if command -v tmux >/dev/null 2>&1 && [ -z "${TMUX:-}" ]; then
+# Create ~/.no-tmux to get a plain shell at login (handy for key-debugging).
+if command -v tmux >/dev/null 2>&1 && [ -z "${TMUX:-}" ] && [ ! -e "$HOME/.no-tmux" ]; then
     case "$(tty 2>/dev/null)" in
         /dev/tty[1-6]|/dev/pts/*)
             exec tmux new-session -A -s main

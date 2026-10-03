@@ -27,4 +27,8 @@ case "$SELECTED" in
 esac
 
 echo "[chuck-run] audio device: $SELECTED (matching '$PATTERN')" >&2
-exec chuck --driver:alsa "--dac:${PATTERN}" --level:90 "$@"
+# --adc as well as --dac: ChucK always opens a duplex (in+out) stream. With
+# only --dac set, the input falls back to ALSA's "default" device while
+# output is hw:HDA, and ALSA refuses that mismatched pair ("system error
+# setting buffer size for duplex stream"). Both must point at the same card.
+exec chuck --driver:alsa "--dac:${PATTERN}" "--adc:${PATTERN}" --level:90 "$@"
