@@ -54,3 +54,7 @@ config/includes.chroot/usr/local/src/
 # the real one at the repo root -- tracking both would just mean every
 # manual edit shows up as two diffs
 config/includes.chroot/MANUAL.md
+
+# chuck binary built for the target (build-chuck-target.sh) and its chroot
+/chuck-target/
+/.chuck-build-chroot/
